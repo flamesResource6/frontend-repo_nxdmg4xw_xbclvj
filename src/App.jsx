@@ -9,6 +9,7 @@ function App() {
   const [conversation, setConversation] = useState(null)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [useStreaming, setUseStreaming] = useState(true)
   const [streamingText, setStreamingText] = useState('')
@@ -29,18 +30,19 @@ function App() {
   }
 
   const sendMessage = async () => {
-    if (!input.trim()) return
+    if (!input.trim() && !imageUrl.trim()) return
     setLoading(true)
     const convId = conversation?.id || ''
-    const userMsg = { role: 'user', content: input, conversation_id: convId }
+    const userMsg = { role: 'user', content: input, conversation_id: convId, image_url: imageUrl || undefined }
     const all = [...messages, userMsg]
     setMessages(all)
     setInput('')
+    setImageUrl('')
 
     const payload = {
       model,
       conversation_id: conversation?.id,
-      messages: all.map(m => ({ role: m.role, content: m.content, conversation_id: conversation?.id || '' }))
+      messages: all.map(m => ({ role: m.role, content: m.content, conversation_id: conversation?.id || '', image_url: m.image_url }))
     }
 
     if (useStreaming) {
@@ -161,22 +163,31 @@ function App() {
 
         <ChatWindow messages={messages} streamingText={streamingText} />
 
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex flex-col gap-2">
+          <div className="flex gap-2">
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+              placeholder="Type your message..."
+              className="flex-1 border rounded px-4 py-3 bg-white"
+            />
+            <button
+              onClick={sendMessage}
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded disabled:opacity-50"
+            >{loading ? 'Thinking...' : 'Send'}</button>
+            {useStreaming && loading && (
+              <button onClick={stopStreaming} className="px-4 py-3 rounded border bg-white">Stop</button>
+            )}
+          </div>
           <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-            placeholder="Type your message..."
-            className="flex-1 border rounded px-4 py-3 bg-white"
+            value={imageUrl}
+            onChange={e => setImageUrl(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); sendMessage() } }}
+            placeholder="Paste image URL (optional) — works with GPT‑4o, 4o‑mini, Gemini 1.5"
+            className="border rounded px-4 py-2 bg-white text-sm"
           />
-          <button
-            onClick={sendMessage}
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded disabled:opacity-50"
-          >{loading ? 'Thinking...' : 'Send'}</button>
-          {useStreaming && loading && (
-            <button onClick={stopStreaming} className="px-4 py-3 rounded border bg-white">Stop</button>
-          )}
         </div>
       </div>
     </div>
